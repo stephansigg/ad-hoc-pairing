@@ -1,0 +1,8 @@
+First implementation by An Huynh 
+contact: huynh@eidos.ic.i.u-tokyo.ac.jp
+
+AdhocPairing:
+https://github.com/zanton/AdhocPairing
+
+OpenUAT for Android:
+http://android-service-openuat.googlecode.com
