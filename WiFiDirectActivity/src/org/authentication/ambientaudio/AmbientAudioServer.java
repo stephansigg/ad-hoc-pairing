@@ -181,9 +181,10 @@ public class AmbientAudioServer extends Thread {
      * @param remoteConn		connection to the remote device
      * @param keyGenListener	listener for the generated key
      */
-	public AmbientAudioServer(Socket remote, OnAmbientAudioResultListener resultListener) {		
+	public AmbientAudioServer(Socket remote, Context context, OnAmbientAudioResultListener resultListener) {		
 		currentState = STATE_NONE;
 		remoteConn = remote;
+		mContext = context;
 		ambientAudioResultListener = resultListener;
 		setName("AmbientAudioServer-Thread");
 		

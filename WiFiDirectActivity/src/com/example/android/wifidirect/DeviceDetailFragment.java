@@ -17,6 +17,8 @@
 package com.example.android.wifidirect;
 
 import android.app.Fragment;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -45,6 +47,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import org.authentication.ambientaudio.AmbientAudioClient;
+import org.authentication.ambientaudio.AmbientAudioPairing;
+import org.authentication.ambientaudio.AmbientAudioServer;
+import org.authentication.ambientaudio.OnAmbientAudioResultListener;
 
 /**
  * A fragment that manages a particular peer and allows interaction with device
@@ -168,7 +175,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //        }
         // each device is a file server
         // and can send files to other devices
-        new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+        new FileServerAsyncTask(getActivity(), 
+        		mContentView.findViewById(R.id.status_text))
         	.execute();
         mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
         ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
@@ -214,10 +222,17 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
      * A simple server socket that accepts connection and writes some data on
      * the stream.
      */
-    public static class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
+    public static class FileServerAsyncTask extends AsyncTask<Void, Void, String> implements OnAmbientAudioResultListener{
 
+    	private static int NOTIF_AUTH_STARTED = 1;
+    	private static int NOTIF_AUTH_SUCCESS = 2;
+    	private static int NOTIF_AUTH_FAILURE = 3;
+    	
         private Context context;
         private TextView statusText;
+        private NotificationManager mNotificationManager;
+        
+        private AmbientAudioServer ambientAudioServer = null;
 
         /**
          * @param context
@@ -226,6 +241,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         public FileServerAsyncTask(Context context, View statusText) {
             this.context = context;
             this.statusText = (TextView) statusText;
+            this.mNotificationManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         }
 
         @Override
@@ -235,6 +251,11 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
                 Socket client = serverSocket.accept();
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
+                
+                if(ambientAudioServer == null)
+                	ambientAudioServer = new AmbientAudioServer(client, context, this);
+                
+                // successful authentication...
                 final File f = new File(Environment.getExternalStorageDirectory() + "/"
                         + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
                         + ".jpg");
@@ -280,6 +301,57 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             statusText.setText("Opening a server socket");
         }
 
+		@Override
+		public void onSessionKeyGeneratedSuccess(byte[] key, Socket remote) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onSessionKeyGeneratedFailure(Socket remote, Exception e) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+
+	    /**
+		 * Stops the authentication server
+		 */
+		public void stopServer() {
+			try {
+				closeAmbientAudio();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		/**
+		 * Notify user that authentication started
+		 */
+		public void notifyAuthenticationStart() {
+			Notification.Builder mBuilder =
+		        new Notification.Builder(context)
+		        .setSmallIcon(android.R.drawable.ic_dialog_info)
+		        .setContentTitle("Authentication started...")
+		        .setAutoCancel(true)
+		        .setTicker("Authentication started ...")
+		        .setContentText("This process usually takes about a minute");
+			
+			// Publish notification.
+			mNotificationManager.notify(
+						NOTIF_AUTH_STARTED, mBuilder.getNotification());		
+		}
+		
+		/**
+		 * Stop the ambient audio server and the ambient audio client
+		 */
+		private void closeAmbientAudio() {
+			if (ambientAudioServer != null) {
+				ambientAudioServer.finish();
+				ambientAudioServer = null;
+			}		
+		}
+
     }
 
     public static boolean copyFile(InputStream inputStream, OutputStream out) {
@@ -298,5 +370,4 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         }
         return true;
     }
-
 }

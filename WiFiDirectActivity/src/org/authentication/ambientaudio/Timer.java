@@ -2,7 +2,6 @@ package org.authentication.ambientaudio;
 
 import com.cognition.navyclock.iNavyClock;
 import com.cognition.navyclock.iNavyClockCallback;
-
 import com.cognition.navyclock.AtomicClockState;
 
 import android.content.ComponentName;
@@ -51,13 +50,9 @@ public class Timer {
 	public void stop() {
 		if (mCallback != null && boundToService && mService != null)
 			try {
-				if (mService != null && mCallback != null) {
-					mService.unregisterTimeListener(mCallback);
-				}				
+				mService.unregisterTimeListener(mCallback);
 			} catch (RemoteException e) {
 				Log.e(TAG, "Unable to unregister time listener.");
-			} catch (Exception e) {
-				Log.e(TAG, e.getMessage());
 			}
 		
 		unbindFromService();    	

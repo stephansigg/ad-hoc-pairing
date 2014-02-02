@@ -47,12 +47,12 @@ public class AmbientAudioPairing implements OnAmbientAudioResultListener {
 	/**
 	 * The ambient audio server object
 	 */
-	private static AmbientAudioServer ambientaudioServer = null;
+	private static AmbientAudioServer ambientAudioServer = null;
 	
 	/**
 	 * The ambient audio client object
 	 */
-	private static AmbientAudioClient ambientaudioClient = null;
+	private static AmbientAudioClient ambientAudioClient = null;
 	
 	/**
 	 * Gets a single instance of the Ambient Audio Pairing -object. Starts listening for
@@ -87,16 +87,18 @@ public class AmbientAudioPairing implements OnAmbientAudioResultListener {
 		}
 	}
 
-	public static void createAmbientAudioServer(Socket remote) {
-		ambientaudioServer = new AmbientAudioServer(remote,getAmbientAudioResultListenerInstance());
+	public static AmbientAudioServer createAmbientAudioServer(Socket remote) {
+		ambientAudioServer = new AmbientAudioServer(remote, mContext, getAmbientAudioResultListenerInstance());
+		return ambientAudioServer;
 	}
 	
 	/**
 	 * Creates the ambient audio client object
 	 * @param remote	The remote connection
 	 */
-	public static void createAmbientAudioClient(Socket remote) {
-		ambientaudioClient = new AmbientAudioClient(remote,getAmbientAudioResultListenerInstance());
+	public static AmbientAudioClient createAmbientAudioClient(Socket remote) {
+		ambientAudioClient = new AmbientAudioClient(remote, mContext, getAmbientAudioResultListenerInstance());
+		return ambientAudioClient;
 	}
 	
 	/**
@@ -120,14 +122,14 @@ public class AmbientAudioPairing implements OnAmbientAudioResultListener {
 	 * Stop the ambient audio server and the ambient audio client
 	 */
 	private static void closeAmbientAudio() {
-		if (ambientaudioClient != null) {
-			ambientaudioClient.finish();
-			ambientaudioClient = null;
+		if (ambientAudioClient != null) {
+			ambientAudioClient.finish();
+			ambientAudioClient = null;
 		}		
 		
-		if (ambientaudioServer != null) {
-			ambientaudioServer.finish();
-			ambientaudioServer = null;
+		if (ambientAudioServer != null) {
+			ambientAudioServer.finish();
+			ambientAudioServer = null;
 		}
 	}
 	

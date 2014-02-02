@@ -19,7 +19,9 @@ package com.example.android.wifidirect;
 import java.io.IOException;
 import java.net.Socket;
 
+import org.authentication.ambientaudio.AmbientAudioClient;
 import org.authentication.ambientaudio.AmbientAudioPairing;
+import org.authentication.ambientaudio.AmbientAudioServer;
 
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -63,6 +65,8 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private BroadcastReceiver receiver = null; 
     
     private AmbientAudioPairing ambientAudioPairing = null;
+    private AmbientAudioClient client = null;
+	private AmbientAudioServer server = null;
     //private File
 
     /**
@@ -208,8 +212,6 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-            	// perform AmbientAudioAuthentication here
-            	//this.
             }
 
             @Override
