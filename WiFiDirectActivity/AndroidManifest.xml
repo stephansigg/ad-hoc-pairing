@@ -23,14 +23,20 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
+        android:debuggable="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Holo"
-        android:debuggable="true" >
+        android:theme="@android:style/Theme.Holo" >
         <activity
             android:name="com.example.android.wifidirect.WiFiDirectActivity"
             android:label="@string/app_name"
             android:launchMode="singleTask" >
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
 
         <!-- Used for transferring files  after a successful connection -->
@@ -39,13 +45,9 @@
             android:enabled="true" />
 
         <activity
-            android:name="com.example.android.wifidirect.WifiDirectActivityTest"
+            android:name=".test.WifiDirectActivityTest"
             android:label="@string/title_activity_wifi_direct_activity_test" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            
         </activity>
     </application>
 

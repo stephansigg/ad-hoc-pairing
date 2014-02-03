@@ -47,10 +47,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.NoSuchPaddingException;
 
 import org.authentication.ambientaudio.AmbientAudioClient;
 import org.authentication.ambientaudio.AmbientAudioPairing;
 import org.authentication.ambientaudio.AmbientAudioServer;
+import org.authentication.ambientaudio.CipherUtils;
 import org.authentication.ambientaudio.OnAmbientAudioResultListener;
 
 /**
@@ -163,24 +168,24 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // After the group negotiation, we assign the group owner as the file
         // server. The file server is single threaded, single connection server
         // socket.
-//        if (info.groupFormed && info.isGroupOwner) {
-//            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
-//                    .execute();
-//        } else if (info.groupFormed) {
-//            // The other device acts as the client. In this case, we enable the
-//            // get file button.
-//            mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
-//            ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
-//                    .getString(R.string.client_text));
-//        }
-        // each device is a file server
-        // and can send files to other devices
-        new FileServerAsyncTask(getActivity(), 
-        		mContentView.findViewById(R.id.status_text))
-        	.execute();
-        mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
-        ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
-              .getString(R.string.client_text));
+        if (info.groupFormed && info.isGroupOwner) {
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+                    .execute();
+        } else if (info.groupFormed) {
+            // The other device acts as the client. In this case, we enable the
+            // get file button.
+            mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
+            ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
+                    .getString(R.string.client_text));
+        }
+// each device is a file server
+// and can send files to other devices
+//        new FileServerAsyncTask(getActivity(), 
+//        		mContentView.findViewById(R.id.status_text))
+//        	.execute();
+//        mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
+//        ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
+//              .getString(R.string.client_text));
 
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
@@ -233,6 +238,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         private NotificationManager mNotificationManager;
         
         private AmbientAudioServer ambientAudioServer = null;
+        private ServerSocket serverSocket = null;
+        private Socket client = null;
+        private String fileName = null;
 
         /**
          * @param context
@@ -247,29 +255,18 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         @Override
         protected String doInBackground(Void... params) {
             try {
-                ServerSocket serverSocket = new ServerSocket(8988);
+                serverSocket = new ServerSocket(8988);
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
-                Socket client = serverSocket.accept();
+                client = serverSocket.accept();
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 
                 if(ambientAudioServer == null)
                 	ambientAudioServer = new AmbientAudioServer(client, context, this);
-                
+                notifyAuthenticationStart();
                 // successful authentication...
-                final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                        + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
-                        + ".jpg");
-
-                File dirs = new File(f.getParent());
-                if (!dirs.exists())
-                    dirs.mkdirs();
-                f.createNewFile();
-
-                Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
-                InputStream inputstream = client.getInputStream();
-                copyFile(inputstream, new FileOutputStream(f));
-                serverSocket.close();
-                return f.getAbsolutePath();
+                //return f.getAbsolutePath();
+                //return client.getInetAddress().toString();
+                return client.toString();
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
                 return null;
@@ -282,14 +279,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
          */
         @Override
         protected void onPostExecute(String result) {
-            if (result != null) {
-                statusText.setText("File copied - " + result);
-                Intent intent = new Intent();
-                intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse("file://" + result), "image/*");
-                context.startActivity(intent);
-            }
-
+            
         }
 
         /*
@@ -303,26 +293,82 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
 		@Override
 		public void onSessionKeyGeneratedSuccess(byte[] key, Socket remote) {
-			// TODO Auto-generated method stub
+			Log.i(this.toString(),"entered onSessionKeyGeneratedSuccess");	
 			
+			mNotificationManager.cancel(NOTIF_AUTH_STARTED);
+			
+			Notification.Builder mBuilder =
+		        new Notification.Builder(context)
+		        .setSmallIcon(android.R.drawable.ic_dialog_info)
+		        .setContentTitle("Authentication succeed!")
+		        .setAutoCancel(true)
+		        .setTicker("Authentication successful!")
+		        .setContentText("Successfully authenticated with ambient audio!");
+			
+			// Publish notification.
+			mNotificationManager.notify(
+						NOTIF_AUTH_SUCCESS, mBuilder.getNotification());
+			
+			try {
+				final File f = new File(Environment.getExternalStorageDirectory() + "/"
+	                    + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
+	                    + ".jpg");
+	
+	            File dirs = new File(f.getParent());
+	            if (!dirs.exists())
+	                dirs.mkdirs();
+	            f.createNewFile();
+	
+	            Log.d(WiFiDirectActivity.TAG, "server: copying files " + f.toString());
+	            InputStream inputstream = remote.getInputStream();
+	            copyFile(inputstream, new FileOutputStream(f));
+	            serverSocket.close();
+	            
+	            fileName = f.getParent() + "/DECRYPTED_" + f.getName();
+				CipherUtils.decrypt(f.getAbsolutePath(), fileName, key);
+				
+				if (fileName != null) {
+	                statusText.setText("File copied - " + fileName);
+	                Intent intent = new Intent();
+	                intent.setAction(android.content.Intent.ACTION_VIEW);
+	                intent.setDataAndType(Uri.parse("file://" + fileName), "image/*");
+	                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	                context.startActivity(intent);
+	            }
+			}
+			catch(IOException e) {
+				e.printStackTrace();
+			}
+			catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 		@Override
 		public void onSessionKeyGeneratedFailure(Socket remote, Exception e) {
-			// TODO Auto-generated method stub
+			Log.e(this.toString(), "entered onSessionKeyGeneratedFailure", e);
 			
-		}
-		
-
-	    /**
-		 * Stops the authentication server
-		 */
-		public void stopServer() {
-			try {
-				closeAmbientAudio();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			mNotificationManager.cancel(NOTIF_AUTH_STARTED);		
+			
+			//Failure notification
+			Notification.Builder mBuilder =
+		        new Notification.Builder(context)
+		        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+		        .setContentTitle("Authentication failed!")
+		        .setAutoCancel(true)
+		        .setTicker("Authentication failed!")
+		        .setContentText("Failure during authentication with ambient audio!");	
+			
+			// Publish notification.
+			mNotificationManager.notify(
+						NOTIF_AUTH_FAILURE, mBuilder.getNotification());
 		}
 		
 		/**
@@ -341,17 +387,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 			mNotificationManager.notify(
 						NOTIF_AUTH_STARTED, mBuilder.getNotification());		
 		}
-		
-		/**
-		 * Stop the ambient audio server and the ambient audio client
-		 */
-		private void closeAmbientAudio() {
-			if (ambientAudioServer != null) {
-				ambientAudioServer.finish();
-				ambientAudioServer = null;
-			}		
-		}
-
     }
 
     public static boolean copyFile(InputStream inputStream, OutputStream out) {

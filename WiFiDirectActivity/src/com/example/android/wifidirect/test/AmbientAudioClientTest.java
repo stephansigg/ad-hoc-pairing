@@ -6,10 +6,22 @@
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  */
-package org.authentication.ambientaudio;
+package com.example.android.wifidirect.test;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.NoSuchPaddingException;
+
+import org.authentication.ambientaudio.AmbientAudioPairing;
+import org.authentication.ambientaudio.CipherUtils;
+import org.authentication.ambientaudio.CommunicationThread;
+import org.authentication.ambientaudio.ECCoder;
+import org.authentication.ambientaudio.OnAmbientAudioResultListener;
+import org.authentication.ambientaudio.Timer;
 
 import android.content.Context;
 import android.os.Handler;
@@ -23,7 +35,7 @@ import android.util.Log;
  * @author Florian Schweitzer
  *
  */
-public class AmbientAudioClient extends Thread {
+public class AmbientAudioClientTest extends Thread {
 	
 	/**
 	 * All possible states of the client
@@ -93,7 +105,7 @@ public class AmbientAudioClient extends Thread {
 	/**
 	 * AudioFingerprint-Object for calculating the audio fingerprint
 	 */
-	private AudioFingerprint mAudioFingerprint;
+	private AudioFingerprintTest mAudioFingerprint;
 	
 	/**
 	 * ECCoder-Object for error correction
@@ -137,7 +149,7 @@ public class AmbientAudioClient extends Thread {
 							}
 
 							switch (data[0]) { // the command must always be at this position
-							case AmbientAudioServer.RECORD_COMMAND:
+							case AmbientAudioServerTest.RECORD_COMMAND:
 								//retrieve recording start time
 								byte[] buffer = new byte[8];
 								for (int i = 0; i < 8; i++)
@@ -165,13 +177,13 @@ public class AmbientAudioClient extends Thread {
 
 								// respond server with ACK
 								byte[] ack = new byte[1];
-								ack[0] = AmbientAudioServer.ACK;
+								ack[0] = AmbientAudioServerTest.ACK;
 								commThread.write(ack);
 								break;
-							case AmbientAudioServer.SERVER_IS_FINISHED:
+							case AmbientAudioServerTest.SERVER_IS_FINISHED:
 								isServerFinished = true;
 								break;
-							case AmbientAudioServer.DELTA_INFO:
+							case AmbientAudioServerTest.DELTA_INFO:
 								// retrieve data out of received bytes array
 								correctionDelta = new byte[data.length - 1]; //command byte is at this position
 
@@ -183,7 +195,7 @@ public class AmbientAudioClient extends Thread {
 										"ambient audio client received correction delta");
 
 								break;
-							case AmbientAudioServer.SERVER_FAILED:
+							case AmbientAudioServerTest.SERVER_FAILED:
 								currentState = STATE_FAILURE_OCCURED;								
 								break;
 							}
@@ -196,12 +208,35 @@ public class AmbientAudioClient extends Thread {
 		}
 	};	
 	
+	/*
+	 * For test
+	 */
+	public AmbientAudioClientTest(Context context) {		
+		currentState = STATE_NONE;
+		//remoteConn = remote;
+		mContext = context;
+		//ambientAudioResultListener = resultListener;
+		setName("AmbientAudioServer-Thread");
+		
+		Log.i(this.toString(),"in AmbientAudioServer-constructor");
+//		Log.i(this.toString(),remoteConn.toString());
+//		Log.i(this.toString(),"ambient audio result listener: " + ambientAudioResultListener.toString());
+		
+		//initialize AmbientAudio-related classes
+		initialize();
+		
+		//mAudioFingerprint.decideRecordingStartTime(0);
+		mAudioFingerprint.decideRecordingStartTime(System.currentTimeMillis() + 1000);
+			
+		Log.i(this.toString(),"ambientaudioserver is constructed");
+	}
+	
 	/**
      * Constructor for the ambient audio client
      * @param remoteConn		connection to the remote device
      * @param keyGenListener	listener for the generated key
      */
-	public AmbientAudioClient(Socket remote, Context context, OnAmbientAudioResultListener resultListener) {
+	public AmbientAudioClientTest(Socket remote, Context context, OnAmbientAudioResultListener resultListener) {
 		setName("AmbientAudioClient-Thread");
 		currentState = STATE_NONE;		
 		mContext = context;
@@ -299,7 +334,7 @@ public class AmbientAudioClient extends Thread {
 	 */
 	public void sendFailureInformation() {
 		byte[] failInfo = new byte[1];
-		failInfo[0] = AmbientAudioServer.CLIENT_FAILED;
+		failInfo[0] = AmbientAudioServerTest.CLIENT_FAILED;
 		
 		commThread.write(failInfo);
 		currentState = STATE_FAILURE_OCCURED;
@@ -311,7 +346,7 @@ public class AmbientAudioClient extends Thread {
 	 */
 	public void sendAuthenticationChallengeToServer() {
 		byte[] challenge = new byte[1];
-		challenge[0] = AmbientAudioServer.CLIENT_CHALLENGE;
+		challenge[0] = AmbientAudioServerTest.CLIENT_CHALLENGE;
 		
 		commThread.write(challenge);
 		currentState = STATE_SENT_CHALLENGE;
@@ -323,7 +358,7 @@ public class AmbientAudioClient extends Thread {
 	 */
 	public void sendFinishInformationToServer() {
 		byte[] finishMessage = new byte[1];
-		finishMessage[0] = AmbientAudioServer.CLIENT_IS_FINISHED;
+		finishMessage[0] = AmbientAudioServerTest.CLIENT_IS_FINISHED;
 		
 		commThread.write(finishMessage);
 		currentState = STATE_CLIENT_FINISHED;	
@@ -370,15 +405,61 @@ public class AmbientAudioClient extends Thread {
 		// Convert the fingerprint
 		int shifttime = mAudioFingerprint.getPatternMatchingShiftTime();
 		byte[][] fingerprint = mAudioFingerprint.getFingerprint(shifttime);
-		byte[] codewordBytes = new byte[AudioFingerprint.fingerprintBits];
+		byte[] codewordBytes = new byte[AudioFingerprintTest.fingerprintBits];
     	int line_leng = fingerprint[0].length;
     	for (int i=0; i<codewordBytes.length; i++)
     		codewordBytes[i] = fingerprint[i/line_leng][i%line_leng];
     	// Convert delta
+    	
 		int[] deltaInt = new int[correctionDelta.length];
 		for (int i=0; i<correctionDelta.length; i++) {
 			deltaInt[i] = correctionDelta[i];
 		}
+		// Do decommit
+    	int err;
+    	err = mECCoder.decommit(codewordBytes, deltaInt);
+    	if (err == -1) {
+    		Log.e(this.toString(), "Error in mECCoder.decommit().");
+    		sendFailureInformation();
+    		return;
+    	}
+    	// Get key
+    	int[] sharedKeyInt = mECCoder.getPlainWord();
+		sharedKey = new byte[sharedKeyInt.length];
+		for (int i=0; i<sharedKeyInt.length; i++) {
+			sharedKey[i] = (byte) sharedKeyInt[i];
+		}
+    	
+		currentState = STATE_KEY_GENERATED;		
+		Log.i(this.toString(),"client state switched to key generated");
+		
+		if (sharedKey != null) {
+			String s = "";
+			for (int i = 0 ; i < sharedKey.length ; i++) {
+				s += sharedKey[i] + ",";
+			}
+			Log.i(this.toString(),"shared key of client: " + s);
+		}
+	}
+	
+	/*
+	 * For testing
+	 */
+	public void calculateSharedKey(int test) {		
+		//after that start the key calculation
+		currentState = STATE_STARTED_KEY_CALCULATION;
+		Log.i(this.toString(),"client state switched to key calculation");
+		
+		// Convert the fingerprint
+		int shifttime = mAudioFingerprint.getPatternMatchingShiftTime();
+		byte[][] fingerprint = mAudioFingerprint.getFingerprint(shifttime);
+		byte[] codewordBytes = new byte[AudioFingerprintTest.fingerprintBits];
+    	int line_leng = fingerprint[0].length;
+    	for (int i=0; i<codewordBytes.length; i++)
+    		codewordBytes[i] = fingerprint[i/line_leng][i%line_leng];
+    	// Convert delta
+    	
+		int[] deltaInt = getDelta(codewordBytes);
 		// Do decommit
     	int err;
     	err = mECCoder.decommit(codewordBytes, deltaInt);
@@ -414,11 +495,11 @@ public class AmbientAudioClient extends Thread {
 		mTimer = new Timer(mContext);
 		mTimer.start();
 		// Initialize AudioFingerprint
-		mAudioFingerprint = new AudioFingerprint(mContext);
+		mAudioFingerprint = new AudioFingerprintTest(mContext);
 		mAudioFingerprint.initialize();
 		// RS
-		int n = AudioFingerprint.fingerprintBits;
-		int m = (int) Math.round(n - 2*AmbientAudioServer.DIFF_LIMIT*n);
+		int n = AudioFingerprintTest.fingerprintBits;
+		int m = (int) Math.round(n - 2*AmbientAudioServerTest.DIFF_LIMIT*n);
 		int symsize = 2;
 		for (int i=0; i<ECCoder.defaultRSParamCount; i++)
 			if (ECCoder.defaultRSParameters[i][3] > n) {
@@ -471,6 +552,53 @@ public class AmbientAudioClient extends Thread {
 			ambientAudioResultListener.onSessionKeyGeneratedFailure(
 					remoteConn, e);
 			Log.i(this.toString(),"after onSessionKeyGeneratedFailure in AmbientAudioClient");
+		}
+	}
+	
+	public int[] getDelta(byte[] codeword) {
+		int err = mECCoder.commit(codeword);
+    	if (err == -1) {
+    		Log.e(this.toString(), "There is not recorded audio data yet.");
+    		return null;
+    	}
+    	// Get delta
+		int[] deltaInt = mECCoder.getDelta();
+		return deltaInt;
+	}
+	
+	public void encrypt(String fileIn, String fileOut) {
+		try {
+			CipherUtils.encrypt(fileIn, fileOut, sharedKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void decrypt(String fileIn, String fileOut) {
+		try {
+			CipherUtils.decrypt(fileIn, fileOut, sharedKey);
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }

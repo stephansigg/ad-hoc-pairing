@@ -15,13 +15,23 @@
         android:text="@string/hello_world" />
 
     <Button
-        android:id="@+id/startAuthentication"
+        android:id="@+id/startClient"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/textView1"
         android:layout_below="@+id/textView1"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="32dp"
-        android:text="Start Authentication" />
+        android:text="Start Client" />
+
+    <Button
+        android:id="@+id/startServer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/startClient"
+        android:layout_below="@+id/startClient"
+        android:layout_marginLeft="14dp"
+        android:layout_marginTop="40dp"
+        android:text="Start Server" />
 
 </RelativeLayout>
