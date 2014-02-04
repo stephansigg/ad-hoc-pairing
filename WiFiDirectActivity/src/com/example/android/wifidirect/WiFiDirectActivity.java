@@ -64,10 +64,9 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private Channel channel;
     private BroadcastReceiver receiver = null; 
     
-    private AmbientAudioPairing ambientAudioPairing = null;
-    private AmbientAudioClient client = null;
-	private AmbientAudioServer server = null;
-    //private File
+    //private AmbientAudioPairing ambientAudioPairing = null;
+    //private AmbientAudioClient client = null;
+	//private AmbientAudioServer server = null;
 
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
@@ -91,17 +90,19 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
         
-        initAmbientAdhocPairing();
+        SimpleLog.appendLog("Main activity created");
+        
+        //initAmbientAdhocPairing();
     }
     
-    private void initAmbientAdhocPairing() {
-        try {
-			ambientAudioPairing = AmbientAudioPairing.getInstance(getApplicationContext(), (NotificationManager)getSystemService(NOTIFICATION_SERVICE));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
+//    private void initAmbientAdhocPairing() {
+//        try {
+//			ambientAudioPairing = AmbientAudioPairing.getInstance(getApplicationContext(), (NotificationManager)getSystemService(NOTIFICATION_SERVICE));
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//    }
 
     /** register the BroadcastReceiver with the intent values to be matched */
     @Override
@@ -120,9 +121,9 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     /**
      * Open a text file in the folder AdhocPairingLog for logging
      */
-    private void openLogFile() {
-    	
-    }
+//    private void openLogFile() {
+//    	
+//    }
 
     /**
      * Remove all peers and clear all fields. This is called on
@@ -183,12 +184,16 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
                     public void onSuccess() {
                         Toast.makeText(WiFiDirectActivity.this, "Discovery Initiated",
                                 Toast.LENGTH_SHORT).show();
+                        
+                        SimpleLog.appendLog("WifiDirect discovered successfully");
                     }
 
                     @Override
                     public void onFailure(int reasonCode) {
                         Toast.makeText(WiFiDirectActivity.this, "Discovery Failed : " + reasonCode,
                                 Toast.LENGTH_SHORT).show();
+                        
+                        SimpleLog.appendLog("WifiDirect discovery failed: " + reasonCode);
                     }
                 });
                 return true;
@@ -212,12 +217,14 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
+            	SimpleLog.appendLog("Connected successfully");
             }
 
             @Override
             public void onFailure(int reason) {
                 Toast.makeText(WiFiDirectActivity.this, "Connect failed. Retry.",
                         Toast.LENGTH_SHORT).show();
+                SimpleLog.appendLog("Connect failed: " + reason);
             }
         });
     }

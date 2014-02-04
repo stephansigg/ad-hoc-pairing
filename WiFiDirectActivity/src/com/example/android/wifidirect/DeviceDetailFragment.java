@@ -257,18 +257,27 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             try {
                 serverSocket = new ServerSocket(8988);
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
+                
+                SimpleLog.appendLog("Authentication Server started at " + serverSocket.toString());
+                
                 client = serverSocket.accept();
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 
                 if(ambientAudioServer == null)
                 	ambientAudioServer = new AmbientAudioServer(client, context, this);
                 notifyAuthenticationStart();
+                
+                SimpleLog.appendLog("Authentication Server started at " + serverSocket.toString());
+                
                 // successful authentication...
                 //return f.getAbsolutePath();
                 //return client.getInetAddress().toString();
                 return client.toString();
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
+                
+                SimpleLog.appendLog("Authentication Server failed due to " + e.getMessage());
+                
                 return null;
             }
         }
@@ -293,7 +302,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
 		@Override
 		public void onSessionKeyGeneratedSuccess(byte[] key, Socket remote) {
-			Log.i(this.toString(),"entered onSessionKeyGeneratedSuccess");	
+			Log.i(this.toString(),"entered onSessionKeyGeneratedSuccess");
+			
+			SimpleLog.appendLog("Authentication Server succeeded with " + remote.toString());
 			
 			mNotificationManager.cancel(NOTIF_AUTH_STARTED);
 			
@@ -327,6 +338,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 	            fileName = f.getParent() + "/DECRYPTED_" + f.getName();
 				CipherUtils.decrypt(f.getAbsolutePath(), fileName, key);
 				
+				SimpleLog.appendLog("Athentication Server saved the decrypted file: " + fileName);
+				
 				if (fileName != null) {
 	                statusText.setText("File copied - " + fileName);
 	                Intent intent = new Intent();
@@ -355,6 +368,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 		public void onSessionKeyGeneratedFailure(Socket remote, Exception e) {
 			Log.e(this.toString(), "entered onSessionKeyGeneratedFailure", e);
 			
+			SimpleLog.appendLog("Authentication Server failed with " + remote.toString() + " : " + e.getMessage());
 			mNotificationManager.cancel(NOTIF_AUTH_STARTED);		
 			
 			//Failure notification

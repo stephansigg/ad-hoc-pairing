@@ -11,6 +11,8 @@ package org.authentication.ambientaudio;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
+import com.example.android.wifidirect.SimpleLog;
+
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -120,6 +122,8 @@ public class AmbientAudioClient extends Thread {
 						byte[] dataAll = null;
 						byte[] data = null;
 
+						SimpleLog.appendLog("Ambient Audio Authentication Client received msg: " + msg.what);
+						
 						switch (msg.what) {
 						case CommunicationThread.MESSAGE_READ:
 
@@ -263,8 +267,12 @@ public class AmbientAudioClient extends Thread {
 		    		
 		    		//send challenge to server
 		    		sendAuthenticationChallengeToServer();
+		    		
+		    		SimpleLog.appendLog("Ambient Audio Authentication Client Communication Thread started with " + remoteConn.toString());
 		        }
 		        
+				SimpleLog.appendLog("Ambient Audio Authentication Client state: " + currentState);
+				
 		        switch (currentState) {
 		        case STATE_RECEIVED_RECORD_COMMAND:
 		        	startRecording();
@@ -282,13 +290,15 @@ public class AmbientAudioClient extends Thread {
 		        	if (isServerFinished) { //wait for server
 		        		currentState = STATE_SERVER_CLIENT_FINISHED;
 		        		Log.i(this.toString(),"client state switched to: state_server_client_finished");
-		        		finish();
+		        		//finish();
 		        	}
 		    		break;
 		        }			
 			}			
 		} catch (Exception e) {
 			sendFailureInformation();
+			
+			SimpleLog.appendLog("Ambient Audio Authentication Client failed at state: " + currentState + " due to " + e.getMessage());
 		}
 		
 		finish();
@@ -338,6 +348,8 @@ public class AmbientAudioClient extends Thread {
 		currentState = STATE_STARTED_RECORDING;
 		Log.i(this.toString(),"client state switched to start recording");
 		
+		SimpleLog.appendLog("Ambient Audio Authentication Client started recording");
+		
 		mAudioFingerprint.startRecording();		
 		mAudioFingerprint.startMatchingPattern();
 		
@@ -366,6 +378,8 @@ public class AmbientAudioClient extends Thread {
 		//after that start the key calculation
 		currentState = STATE_STARTED_KEY_CALCULATION;
 		Log.i(this.toString(),"client state switched to key calculation");
+		
+		SimpleLog.appendLog("Ambient Audio Authentication Client started calculation");
 		
 		// Convert the fingerprint
 		int shifttime = mAudioFingerprint.getPatternMatchingShiftTime();
@@ -403,6 +417,8 @@ public class AmbientAudioClient extends Thread {
 				s += sharedKey[i] + ",";
 			}
 			Log.i(this.toString(),"shared key of client: " + s);
+			
+			SimpleLog.appendLog("Ambient Audio Authentication Client generated the key successfully");
 		}
 	}
 
@@ -426,6 +442,8 @@ public class AmbientAudioClient extends Thread {
 				break;
 			}
 		mECCoder = new ECCoder(n, m, symsize);
+		
+		SimpleLog.appendLog("Ambient Audio Authentication Client initialized");
 	}
 	
 	/**
@@ -459,18 +477,24 @@ public class AmbientAudioClient extends Thread {
 						remoteConn);
 				
 				Log.i(this.toString(),"after onSessionKeyGeneratedSuccess in AmbientAudioClient");
+				
+				SimpleLog.appendLog("Ambient Audio Authentication Client finished successfully");
+				
 			} else {
 				ambientAudioResultListener.onSessionKeyGeneratedFailure(
 						remoteConn, new Exception(
 								"Ambient-Audio-Calculation failed"));			
 				
 				Log.i(this.toString(),"after onSessionKeyGeneratedFailure in AmbientAudioClient");
+				
 			}
 
 		} catch (Exception e) {
 			ambientAudioResultListener.onSessionKeyGeneratedFailure(
 					remoteConn, e);
 			Log.i(this.toString(),"after onSessionKeyGeneratedFailure in AmbientAudioClient");
+			
+			SimpleLog.appendLog("Ambient Audio Authentication Client failed due to " + e.getMessage());
 		}
 	}
 }

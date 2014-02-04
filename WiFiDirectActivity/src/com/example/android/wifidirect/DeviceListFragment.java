@@ -159,9 +159,15 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         }
         peers.clear();
         peers.addAll(peerList.getDeviceList());
+        
+        SimpleLog.appendLog("WifiDirect discovered: " + peers.size());
+        
         ((WiFiPeerListAdapter) getListAdapter()).notifyDataSetChanged();
         if (peers.size() == 0) {
             Log.d(WiFiDirectActivity.TAG, "No devices found");
+            
+            SimpleLog.appendLog("WifiDirect: no devices found");
+            
             return;
         }
 

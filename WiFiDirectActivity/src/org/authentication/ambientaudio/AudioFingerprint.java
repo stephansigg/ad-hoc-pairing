@@ -4,6 +4,8 @@ import java.util.HashMap;
 
 import org.authentication.ambientaudio.FFT;
 
+import com.example.android.wifidirect.SimpleLog;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
@@ -239,6 +241,9 @@ public class AudioFingerprint {
 	}
 	
 	public void startRecording() {
+		
+		SimpleLog.appendLog("Ambient Audio Recording at " + recordingStartTime);
+		
 		if (recordingStartTime == 0) {
 			Log.i(TAG,"Error: no start time");
 			return; // Error: no start time

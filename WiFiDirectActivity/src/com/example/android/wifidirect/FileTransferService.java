@@ -84,13 +84,20 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
                 socket.bind(null);
                 socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
                 
+                SimpleLog.appendLog("Authentication Client connected successfully at " + socket.toString());
+                
                 //serverSocket = new Socket(host, port, false);
                 if(ambientAudioClient == null)
                 	ambientAudioClient = new AmbientAudioClient(socket, context, this);
                 notifyAuthenticationStart();
+                
+                SimpleLog.appendLog("Authentication Client started");
                 // successful authentication
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
+                
+                SimpleLog.appendLog("Authentication Client failed due to " + e.getMessage());
+                
             } finally {
                 //
             }
@@ -101,6 +108,8 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
 	@Override
 	public void onSessionKeyGeneratedSuccess(byte[] key, Socket remote) {
 		Log.i(this.toString(),"entered onSessionKeyGeneratedSuccess");	
+		
+		SimpleLog.appendLog("Authentication Client succeeded with " + remote.toString());
 		
 		mNotificationManager.cancel(NOTIF_AUTH_STARTED);
 		
@@ -125,6 +134,8 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
 				CipherUtils.encrypt(fileUri, encryptedFileUri, key);
 				fileUri = encryptedFileUri;
 				
+				SimpleLog.appendLog("Authentication Client saved the encrypted file: " + fileUri);
+				
 		        OutputStream stream = socket.getOutputStream();
 		        ContentResolver cr = context.getContentResolver();
 		        InputStream is = null;
@@ -136,6 +147,7 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
 		        DeviceDetailFragment.copyFile(is, stream);
 		        Log.d(WiFiDirectActivity.TAG, "Client: Data written");
 		        
+		        SimpleLog.appendLog("Authentication Client sent the file to " + remote.toString());
 			}
 			else
 				Log.d(WiFiDirectActivity.TAG, "Remote FileURI Not Found");
@@ -148,6 +160,9 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
 		}
 		catch(IOException e) {
 			Log.e(WiFiDirectActivity.TAG, e.getMessage());
+			
+			SimpleLog.appendLog("Authentication Client failed due to " + e.getMessage() + " and " + fileUri);
+			
 		}
 		catch (InvalidKeyException e1) {
 			// TODO Auto-generated catch block
