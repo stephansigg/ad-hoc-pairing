@@ -73,6 +73,8 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
     @Override
     protected void onHandleIntent(Intent intent) {
 
+    	SimpleLog.appendLog("On handling intent " + intent.getAction());
+    	
         if (intent.getAction().equals(ACTION_SEND_FILE)) {
             fileUri = intent.getExtras().getString(EXTRAS_FILE_PATH);
             String host = intent.getExtras().getString(EXTRAS_GROUP_OWNER_ADDRESS);
@@ -89,7 +91,7 @@ public class FileTransferService extends IntentService implements OnAmbientAudio
                 //serverSocket = new Socket(host, port, false);
                 if(ambientAudioClient == null)
                 	ambientAudioClient = new AmbientAudioClient(socket, context, this);
-                notifyAuthenticationStart();
+                //notifyAuthenticationStart();
                 
                 SimpleLog.appendLog("Authentication Client started");
                 // successful authentication

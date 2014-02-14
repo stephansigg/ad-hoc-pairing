@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Iterator;
+
+import com.example.android.wifidirect.SimpleLog;
 
 import android.os.Handler;
 import android.util.Log;
@@ -67,8 +70,8 @@ public class CommunicationThread extends Thread {
         try {
         	if (remoteConn != null) {
         		setName("CommunicationThread-" + remoteConn.toString());
-    			inputStream = remoteConn.getInputStream();
     			outputStream = remoteConn.getOutputStream();
+    			inputStream = remoteConn.getInputStream();
     			mHandler = handler;
         	}
 		} catch (IOException e) {
@@ -85,6 +88,7 @@ public class CommunicationThread extends Thread {
     		}
 			
 			Log.i(this.toString(), "in while loop of CommThread");
+			SimpleLog.appendLog(this.toString() + " in while loop of CommThread");
 	        byte[] buffer = new byte[1024];
 	        int bytes;
 
@@ -100,6 +104,7 @@ public class CommunicationThread extends Thread {
 		                if (buffer != null && buffer.length > 0) {
 		                	if (buffer[0] == CLOSING_BYTE) {
 		                		Log.i(this.toString(),"CommThread received closing byte");
+		                		SimpleLog.appendLog(this.toString() + " Communication Thread received closing byte");
 		                		receivedClosingByte = true;
 		                	} else {
 		                		if (inputStream != null && mHandler != null) {
@@ -117,8 +122,11 @@ public class CommunicationThread extends Thread {
 		}
     	
     	Log.i(this.toString(),"after while() CommThread --> closing");
+    	SimpleLog.appendLog(this.toString() + " after while() CommThread --> closing");
     	Log.i(this.toString(), "value of sentClosingByte: " + sentClosingByte);
+    	SimpleLog.appendLog(this.toString() + " value of sentClosingByte: " + sentClosingByte);
     	Log.i(this.toString(), "value of receivedClosingByte: " + receivedClosingByte);
+    	SimpleLog.appendLog(this.toString() + " value of receivedClosingByte: " + receivedClosingByte);
     }
 
     /**
@@ -129,6 +137,8 @@ public class CommunicationThread extends Thread {
         try {
         	if (outputStream != null && mHandler != null) {
         		outputStream.write(buffer);
+        		
+        		outputStream.flush();
         		
         		if (buffer != null && buffer.length > 0) {
                 	if (buffer[0] == CLOSING_BYTE) {
@@ -151,10 +161,20 @@ public class CommunicationThread extends Thread {
 	 */
 	public void finish() {
 		Log.i(this.toString(),"in CommThread finish()");
-
 		
 		byte[] closing = { CLOSING_BYTE };
 		write(closing);
 		Log.i(this.toString(),"after write closing byte");
+		
+//		try {
+//			if(inputStream != null)
+//				inputStream.close();
+//			if(outputStream != null)
+//				outputStream.close();
+//			SimpleLog.appendLog(this.toString() + " Communication Thread finished successfully");
+//		}
+//		catch(IOException e) {
+//			SimpleLog.appendLog("Communication Thread " + e.getMessage());
+//		}
 	}
 }

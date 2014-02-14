@@ -212,6 +212,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
     @Override
     public void connect(WifiP2pConfig config) {
+    	//check if connected or not???
         manager.connect(channel, config, new ActionListener() {
 
             @Override

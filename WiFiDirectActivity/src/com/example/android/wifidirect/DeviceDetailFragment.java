@@ -99,6 +99,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 //                            }
 //                        }
                         );
+                
                 ((DeviceActionListener) getActivity()).connect(config);
 
             }
@@ -138,6 +139,11 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
         statusText.setText("Sending: " + uri);
         Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
+        
+        //prepare file transfer service (of client)
+        SimpleLog.appendLog("Preparing to send " + uri.toString() + 
+        		" to " + info.groupOwnerAddress.toString());
+        
         Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
         serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
         serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
@@ -145,6 +151,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 info.groupOwnerAddress.getHostAddress());
         serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
         getActivity().startService(serviceIntent);
+        
+        SimpleLog.appendLog("Successfully start file transfer service");
     }
 
     @Override
@@ -169,9 +177,15 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
+        	
+        	SimpleLog.appendLog("Group Owner - Server: " + info.groupOwnerAddress.toString());
+        	
             new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
                     .execute();
         } else if (info.groupFormed) {
+
+        	SimpleLog.appendLog("Client connected to: " + info.groupOwnerAddress.toString());
+        	
             // The other device acts as the client. In this case, we enable the
             // get file button.
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
@@ -258,16 +272,17 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 serverSocket = new ServerSocket(8988);
                 Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
                 
-                SimpleLog.appendLog("Authentication Server started at " + serverSocket.toString());
+                SimpleLog.appendLog("Server started listening at " + serverSocket.toString());
                 
+                //may be blocked here, waiting...
                 client = serverSocket.accept();
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 
                 if(ambientAudioServer == null)
                 	ambientAudioServer = new AmbientAudioServer(client, context, this);
-                notifyAuthenticationStart();
+                //notifyAuthenticationStart();
                 
-                SimpleLog.appendLog("Authentication Server started at " + serverSocket.toString());
+                SimpleLog.appendLog("Authentication Server started at " + serverSocket.toString() + " with the client " + client.toString());
                 
                 // successful authentication...
                 //return f.getAbsolutePath();
